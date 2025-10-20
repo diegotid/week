@@ -11,7 +11,8 @@ import SwiftUI
 @main
 struct WeekWidgetBundle: WidgetBundle {
     var body: some Widget {
-        WeekWidget()
+        CalendarWeekWidget()
+        GaugesWeekWidget()
         WeekWidgetControl()
     }
 }
