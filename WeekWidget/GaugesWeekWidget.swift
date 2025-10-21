@@ -23,6 +23,15 @@ struct GaugesWeekWidgetEntryView: View {
         return c
     }
 
+    // Add a formatter that disables grouping separator
+    private static var noGroupYearFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale.current
+        f.numberStyle = .none
+        f.usesGroupingSeparator = false
+        return f
+    }()
+
     private func isoWeekInfo(for date: Date) -> (week: Int, totalWeeks: Int) {
         let week = cal.component(.weekOfYear, from: date)
         let totalWeeks = cal.range(of: .weekOfYear, in: .yearForWeekOfYear, for: date)?.count ?? 52
@@ -50,17 +59,20 @@ struct GaugesWeekWidgetEntryView: View {
         return formatter.string(from: date).capitalized
     }
     
-    private func shortDayMonth(for date: Date) -> String {
+    private func shortDayMonth(for date: Date) -> some View {
         let day = displayCal.component(.day, from: date)
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.calendar = displayCal
-        formatter.dateFormat = "MMMM"
+        formatter.dateFormat = "MMM"
         let monthName = formatter.string(from: date)
-        if let firstLetter = monthName.first {
-            return "\(day)\(String(firstLetter))"
-        } else {
-            return "\(day)"
+        
+        return VStack(spacing: -2) {
+            Text("\(day)")
+                .font(.callout)
+            Text(monthName)
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -70,9 +82,11 @@ struct GaugesWeekWidgetEntryView: View {
         let (q, qProgress) = quarterProgress(for: entry.date)
         let dayIndex = dayIndexInWeek(for: entry.date)
         let weekProgress = Double(dayIndex) / 7.0
+        let year = displayCal.component(.year, from: entry.date)
+        let yearString = GaugesWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: year)) ?? "\(year)"
 
-        HStack(alignment: .bottom, spacing: 18) {
-            VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .bottom, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Text("Week")
@@ -85,6 +99,17 @@ struct GaugesWeekWidgetEntryView: View {
                         .font(.system(size: 42))
                 }
                 .padding(.leading, 3)
+                Gauge(value: qProgress) {
+                    Text("Q\(q)")
+                        .foregroundStyle(.secondary)
+                } currentValueLabel: {
+                    Text("\(Int(round(qProgress * 100)))%")
+                        .font(.caption2)
+                }
+                .gaugeStyle(.accessoryCircular)
+                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+            }
+            VStack(alignment: .trailing, spacing: 8) {
                 Gauge(value: weekProgress) {
                     Text("\(week)")
                         .foregroundStyle(.secondary)
@@ -94,24 +119,12 @@ struct GaugesWeekWidgetEntryView: View {
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
-            }
-            VStack(alignment: .trailing, spacing: 14) {
                 Gauge(value: yearProgress) {
-                    Text("Year")
+                    Text(yearString)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } currentValueLabel: {
-                    Text("...\(totalWeeks)")
-                        .font(.callout)
-                }
-                .gaugeStyle(.accessoryCircular)
-                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
-                Gauge(value: qProgress) {
-                    Text("Q\(q)")
-                        .foregroundStyle(.secondary)
-                } currentValueLabel: {
-                    Text("\(Int(round(qProgress * 100)))%")
-                        .font(.caption2)
+                    shortDayMonth(for: entry.date)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))

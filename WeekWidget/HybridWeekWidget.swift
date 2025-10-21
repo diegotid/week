@@ -1,4 +1,3 @@
-
 //
 //  WeekWidget.swift
 //  WeekWidget
@@ -23,6 +22,15 @@ struct HybridWeekWidgetEntryView: View {
         c.timeZone = .current
         return c
     }
+    
+    // Add a formatter that disables grouping separator
+    private static var noGroupYearFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale.current
+        f.numberStyle = .none
+        f.usesGroupingSeparator = false
+        return f
+    }()
     
     private func weekdaySymbolsOrdered() -> [String] {
         let df = DateFormatter()
@@ -56,9 +64,27 @@ struct HybridWeekWidgetEntryView: View {
     private func daysForWeek(starting start: Date) -> [Date] {
         (0..<7).compactMap { displayCal.date(byAdding: .day, value: $0, to: start) }
     }
+    
+    private func shortDayMonth(for date: Date) -> some View {
+        let day = displayCal.component(.day, from: date)
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.calendar = displayCal
+        formatter.dateFormat = "MMM"
+        let monthName = formatter.string(from: date)
+        
+        return VStack(spacing: -2) {
+            Text("\(day)")
+                .font(.callout)
+            Text(monthName)
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+        }
+    }
 
     private func dayNumber(_ date: Date) -> Int { displayCal.component(.day, from: date) }
     private func month(_ date: Date) -> Int { displayCal.component(.month, from: date) }
+    private func year(_ date: Date) -> Int { displayCal.component(.year, from: date)}
 
     var body: some View {
         let (week, totalWeeks) = isoWeekInfo(for: entry.date)
@@ -68,35 +94,37 @@ struct HybridWeekWidgetEntryView: View {
         let currentWeek = daysForWeek(starting: weekStart)
         let followingWeek = daysForWeek(starting: nextWeekStart)
         let currentMonth = month(entry.date)
+        let yr = year(entry.date)
+        let yearString = HybridWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: yr)) ?? "\(yr)"
 
-        VStack(alignment: .center, spacing: 16) {
-            HStack(alignment: .bottom, spacing: 22) {
+        VStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .bottom, spacing: 16) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Text("Week")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.leading, 6)
+                    .padding(.leading, 3)
                     .padding(.bottom, -6)
                     Text("\(week)")
                         .font(.system(size: 42))
                 }
+                .padding(.leading, 6)
                 Gauge(value: yearProgress) {
-                    Text("Year")
+                    Text(yearString)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } currentValueLabel: {
-                    Text("...\(totalWeeks)")
-                        .font(.callout)
+                    shortDayMonth(for: entry.date)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
             }
             .padding(.top, 1)
-            .padding(.leading, 3)
+            .padding(.trailing, 3)
             .frame(maxWidth: .infinity)
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 HStack(spacing: 0) {
                     Spacer(minLength: 18)
                     ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
@@ -120,9 +148,9 @@ struct HybridWeekWidgetEntryView: View {
         highlightDate: Date,
         currentMonth: Int
     ) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: -1) {
             Text("\(weekNumber)")
-                .font(.caption2)
+                .font(.system(size: 7))
                 .foregroundStyle(.secondary)
                 .rotationEffect(.degrees(-90))
                 .frame(width: 18)
@@ -131,8 +159,8 @@ struct HybridWeekWidgetEntryView: View {
                 let isOtherMonth = month(day) != currentMonth
                 ZStack(alignment: .center) {
                     if isToday {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(.primary.opacity(0.25))
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(.primary.opacity(0.4))
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
@@ -153,7 +181,7 @@ struct HybridWeekWidget: Widget {
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
-            CalendarWeekWidgetEntryView(entry: entry)
+            HybridWeekWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Week Number with Calendar View and Year Progress Gauge")
@@ -161,3 +189,4 @@ struct HybridWeekWidget: Widget {
         .supportedFamilies([.systemSmall])
     }
 }
+
