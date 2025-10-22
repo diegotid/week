@@ -137,7 +137,7 @@ struct GaugesWeekWidget: Widget {
     let kind: String = "WeekWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
             GaugesWeekWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }

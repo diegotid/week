@@ -9,7 +9,7 @@ import WidgetKit
 import SwiftUI
 
 struct CalendarWeekWidgetEntryView: View {
-    var entry: Provider.Entry
+    var entry: SimpleEntry
 
     private var cal: Calendar {
         var c = Calendar(identifier: .iso8601)
@@ -202,7 +202,7 @@ struct CalendarWeekWidget: Widget {
     let kind: String = "CalendarWeekWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
             CalendarWeekWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
@@ -211,4 +211,3 @@ struct CalendarWeekWidget: Widget {
         .supportedFamilies([.systemSmall])
     }
 }
-

@@ -14,6 +14,5 @@ struct WeekWidgetBundle: WidgetBundle {
         HybridWeekWidget()
         CalendarWeekWidget()
         GaugesWeekWidget()
-        WeekWidgetControl()
     }
 }

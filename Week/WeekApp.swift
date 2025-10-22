@@ -13,5 +13,6 @@ struct WeekApp: App {
         WindowGroup {
             ContentView()
         }
+        .windowResizability(.contentMinSize)
     }
 }

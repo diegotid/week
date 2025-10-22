@@ -180,7 +180,7 @@ struct HybridWeekWidget: Widget {
     let kind: String = "HybridWeekWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
             HybridWeekWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
@@ -189,4 +189,3 @@ struct HybridWeekWidget: Widget {
         .supportedFamilies([.systemSmall])
     }
 }
-

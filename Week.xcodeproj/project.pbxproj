@@ -44,6 +44,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F171F8D42EA986D6002EC2B4 /* Exceptions for "WeekWidget" folder in "Week" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CalendarWeekWidget.swift,
+				GaugesWeekWidget.swift,
+				HybridWeekWidget.swift,
+				WeekWidgetProvider.swift,
+			);
+			target = F19AC69F2EA645C70033E551 /* Week */;
+		};
 		F19AC6C72EA648D00033E551 /* Exceptions for "WeekWidget" folder in "WeekWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -62,6 +72,7 @@
 		F19AC6B82EA648CE0033E551 /* WeekWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				F171F8D42EA986D6002EC2B4 /* Exceptions for "WeekWidget" folder in "Week" target */,
 				F19AC6C72EA648D00033E551 /* Exceptions for "WeekWidget" folder in "WeekWidgetExtension" target */,
 			);
 			path = WeekWidget;
@@ -447,14 +458,14 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WeekWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = WeekWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = "Week Number Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.cuatro.Week.WeekWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -479,14 +490,14 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WeekWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = WeekWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = "Week Number Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = studio.cuatro.Week.WeekWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";

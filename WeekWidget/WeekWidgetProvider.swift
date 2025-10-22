@@ -7,32 +7,31 @@
 
 import WidgetKit
 
-struct Provider: AppIntentTimelineProvider {
+struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent())
+        SimpleEntry(date: Date())
     }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> Void) {
+        completion(SimpleEntry(date: Date()))
     }
     
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> Void) {
         var entries: [SimpleEntry] = []
         let now = Date()
         var cal = Calendar(identifier: .iso8601)
         cal.timeZone = .current
-        entries.append(SimpleEntry(date: now, configuration: configuration))
+        entries.append(SimpleEntry(date: now))
         let startOfTomorrow = cal.startOfDay(for: cal.date(byAdding: .day, value: 1, to: now)!)
         for dayOffset in 0..<14 {
             if let entryDate = cal.date(byAdding: .day, value: dayOffset, to: startOfTomorrow) {
-                entries.append(SimpleEntry(date: entryDate, configuration: configuration))
+                entries.append(SimpleEntry(date: entryDate))
             }
         }
-        return Timeline(entries: entries, policy: .atEnd)
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
 struct SimpleEntry: TimelineEntry {
     let date: Date
-    let configuration: ConfigurationAppIntent
 }
