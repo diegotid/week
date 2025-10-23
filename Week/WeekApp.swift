@@ -12,7 +12,7 @@ struct WeekApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .fixedWindow(size: CGSize(width: 820, height: 660))
         }
-        .windowResizability(.contentMinSize)
     }
 }

@@ -206,8 +206,8 @@ struct CalendarWeekWidget: Widget {
             CalendarWeekWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Week Number with Calendar View")
-        .description("Week number with a compact calendar view showing 2 weeks.")
+        .configurationDisplayName("Calendar View with Week Number")
+        .description("Calendar month view with current week highlighted.")
         .supportedFamilies([.systemSmall])
     }
 }
