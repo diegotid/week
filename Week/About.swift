@@ -9,7 +9,7 @@ import SwiftUI
 
 struct About: View {
     private var appIconImage: Image? = {
-        guard let image = NSImage(named: "AppIcon") else {
+        guard let image = NSImage(named: "WeekIcon") else {
             return nil
         }
         return Image(nsImage: image)
