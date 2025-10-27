@@ -10,6 +10,7 @@ import SwiftUI
 
 struct CalendarWeekWidgetEntryView: View {
     var entry: SimpleEntry
+    var showHeader: Bool = true
 
     private var cal: Calendar {
         var c = Calendar(identifier: .iso8601)
@@ -109,19 +110,21 @@ struct CalendarWeekWidgetEntryView: View {
         let weekStarts = weekStartDatesForMonth(containing: entry.date)
 
         VStack(alignment: .center, spacing: 6) {
-            HStack(alignment: .bottom, spacing: 3) {
-                Text("Week")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text("\(week)")
-                    .font(.system(size: 12, weight: .bold))
-                    .bold()
-                Spacer()
-                Text(monthYearString(for: entry.date))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+            if showHeader {
+                HStack(alignment: .bottom, spacing: 3) {
+                    Text("Week")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text("\(week)")
+                        .font(.system(size: 12, weight: .bold))
+                        .bold()
+                    Spacer()
+                    Text(monthYearString(for: entry.date))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 8)
             VStack(spacing: 2) {
                 HStack(spacing: 0) {
                     Spacer(minLength: 18)
