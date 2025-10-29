@@ -72,8 +72,8 @@ struct GaugesWeekWidgetEntryView: View {
                 .font(.callout)
             Text(monthName)
                 .font(.system(size: 9))
-                .foregroundStyle(.secondary)
         }
+        .padding(.bottom, 3)
     }
 
     var body: some View {
@@ -91,7 +91,7 @@ struct GaugesWeekWidgetEntryView: View {
                     HStack(spacing: 6) {
                         Text("Week")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.accentColor)
                     }
                     .padding(.leading, 6)
                     .padding(.bottom, -6)
@@ -101,10 +101,10 @@ struct GaugesWeekWidgetEntryView: View {
                 .padding(.leading, 3)
                 Gauge(value: qProgress) {
                     Text("Q\(q)")
-                        .foregroundStyle(.secondary)
                 } currentValueLabel: {
                     Text("\(Int(round(qProgress * 100)))%")
                         .font(.caption2)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
@@ -112,19 +112,19 @@ struct GaugesWeekWidgetEntryView: View {
             VStack(alignment: .trailing, spacing: 8) {
                 Gauge(value: weekProgress) {
                     Text("\(week)")
-                        .foregroundStyle(.secondary)
                 } currentValueLabel: {
                     Text(shortWeekday(for: entry.date))
                         .font(.caption2)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
                 Gauge(value: yearProgress) {
                     Text(yearString)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
                 } currentValueLabel: {
                     shortDayMonth(for: entry.date)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))

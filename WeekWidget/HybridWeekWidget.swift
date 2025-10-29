@@ -78,8 +78,8 @@ struct HybridWeekWidgetEntryView: View {
                 .font(.callout)
             Text(monthName)
                 .font(.system(size: 9))
-                .foregroundStyle(.secondary)
         }
+        .padding(.bottom, 3)
     }
 
     private func dayNumber(_ date: Date) -> Int { displayCal.component(.day, from: date) }
@@ -97,13 +97,13 @@ struct HybridWeekWidgetEntryView: View {
         let yr = year(entry.date)
         let yearString = HybridWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: yr)) ?? "\(yr)"
 
-        VStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .center, spacing: 14) {
             HStack(alignment: .bottom, spacing: 16) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Text("Week")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.accentColor)
                     }
                     .padding(.leading, 3)
                     .padding(.bottom, -6)
@@ -114,9 +114,9 @@ struct HybridWeekWidgetEntryView: View {
                 Gauge(value: yearProgress) {
                     Text(yearString)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
                 } currentValueLabel: {
                     shortDayMonth(for: entry.date)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
@@ -150,7 +150,7 @@ struct HybridWeekWidgetEntryView: View {
     ) -> some View {
         HStack(spacing: -1) {
             Text("\(weekNumber)")
-                .font(.system(size: 7))
+                .font(.system(size: 9))
                 .foregroundStyle(.secondary)
                 .rotationEffect(.degrees(-90))
                 .frame(width: 18)
@@ -160,7 +160,7 @@ struct HybridWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(.primary.opacity(0.4))
+                            .fill(Color.accentColor)
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")

@@ -114,14 +114,13 @@ struct CalendarWeekWidgetEntryView: View {
                 HStack(alignment: .bottom, spacing: 3) {
                     Text("Week")
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.accentColor)
                     Text("\(week)")
                         .font(.system(size: 12, weight: .bold))
                         .bold()
                     Spacer()
                     Text(monthYearString(for: entry.date))
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 8)
             }
@@ -161,11 +160,12 @@ struct CalendarWeekWidgetEntryView: View {
             if isCurrent {
                 Text("\(weekNumber)")
                     .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.accentColor)
                     .rotationEffect(.degrees(-90))
                     .frame(width: 18)
             } else {
                 Text("\(weekNumber)")
-                    .font(.system(size: 7))
+                    .font(.system(size: 9))
                     .foregroundStyle(.secondary)
                     .rotationEffect(.degrees(-90))
                     .frame(width: 18)
@@ -176,7 +176,7 @@ struct CalendarWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(.primary.opacity(0.4))
+                            .fill(Color.accentColor)
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
