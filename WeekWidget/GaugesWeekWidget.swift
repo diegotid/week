@@ -70,8 +70,9 @@ struct GaugesWeekWidgetEntryView: View {
         return VStack(spacing: -2) {
             Text("\(day)")
                 .font(.callout)
+                .bold()
             Text(monthName)
-                .font(.system(size: 9))
+                .font(.system(size: 9, weight: .bold))
         }
         .padding(.bottom, 3)
     }
@@ -90,8 +91,8 @@ struct GaugesWeekWidgetEntryView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Text("Week")
-                            .font(.caption)
-                            .foregroundStyle(Color.accentColor)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color("AccentColor"))
                     }
                     .padding(.leading, 6)
                     .padding(.bottom, -6)
@@ -103,8 +104,8 @@ struct GaugesWeekWidgetEntryView: View {
                     Text("Q\(q)")
                 } currentValueLabel: {
                     Text("\(Int(round(qProgress * 100)))%")
-                        .font(.caption2)
-                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
@@ -114,8 +115,8 @@ struct GaugesWeekWidgetEntryView: View {
                     Text("\(week)")
                 } currentValueLabel: {
                     Text(shortWeekday(for: entry.date))
-                        .font(.caption2)
-                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
@@ -124,7 +125,7 @@ struct GaugesWeekWidgetEntryView: View {
                         .font(.caption)
                 } currentValueLabel: {
                     shortDayMonth(for: entry.date)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Color("AccentColor"))
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))

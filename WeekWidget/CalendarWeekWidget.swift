@@ -64,23 +64,6 @@ struct CalendarWeekWidgetEntryView: View {
     private func daysForWeek(starting start: Date) -> [Date] {
         (0..<7).compactMap { displayCal.date(byAdding: .day, value: $0, to: start) }
     }
-    
-    private func shortDayMonth(for date: Date) -> some View {
-        let day = displayCal.component(.day, from: date)
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.calendar = displayCal
-        formatter.dateFormat = "MMM"
-        let monthName = formatter.string(from: date)
-        
-        return VStack(spacing: -2) {
-            Text("\(day)")
-                .font(.callout)
-            Text(monthName)
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-        }
-    }
 
     private func dayNumber(_ date: Date) -> Int { displayCal.component(.day, from: date) }
     private func month(_ date: Date) -> Int { displayCal.component(.month, from: date) }
@@ -113,8 +96,8 @@ struct CalendarWeekWidgetEntryView: View {
             if showHeader {
                 HStack(alignment: .bottom, spacing: 3) {
                     Text("Week")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
                     Text("\(week)")
                         .font(.system(size: 12, weight: .bold))
                         .bold()
@@ -160,7 +143,7 @@ struct CalendarWeekWidgetEntryView: View {
             if isCurrent {
                 Text("\(weekNumber)")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color("AccentColor"))
                     .rotationEffect(.degrees(-90))
                     .frame(width: 18)
             } else {
@@ -176,7 +159,7 @@ struct CalendarWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.accentColor)
+                            .fill(Color("AccentColor"))
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
@@ -184,7 +167,7 @@ struct CalendarWeekWidgetEntryView: View {
                         .fontWeight(isToday ? .bold : .regular)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                        .foregroundStyle(isToday ? .white : (isOtherMonth ? .secondary : .primary))
+                        .foregroundStyle(isToday ? .black : (isOtherMonth ? .secondary : .primary))
                         .frame(width: 14, height: 14)
                 }
                 .frame(width: 18, height: 18)

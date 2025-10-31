@@ -76,8 +76,9 @@ struct HybridWeekWidgetEntryView: View {
         return VStack(spacing: -2) {
             Text("\(day)")
                 .font(.callout)
+                .bold()
             Text(monthName)
-                .font(.system(size: 9))
+                .font(.system(size: 9, weight: .bold))
         }
         .padding(.bottom, 3)
     }
@@ -102,8 +103,8 @@ struct HybridWeekWidgetEntryView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Text("Week")
-                            .font(.caption)
-                            .foregroundStyle(Color.accentColor)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color("AccentColor"))
                     }
                     .padding(.leading, 3)
                     .padding(.bottom, -6)
@@ -116,7 +117,7 @@ struct HybridWeekWidgetEntryView: View {
                         .font(.caption)
                 } currentValueLabel: {
                     shortDayMonth(for: entry.date)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Color("AccentColor"))
                 }
                 .gaugeStyle(.accessoryCircular)
                 .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
@@ -160,14 +161,14 @@ struct HybridWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.accentColor)
+                            .fill(Color("AccentColor"))
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
                         .font(.caption2)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                        .foregroundStyle(isToday ? .white : (isOtherMonth ? .secondary : .primary))
+                        .foregroundStyle(isToday ? .black : (isOtherMonth ? .secondary : .primary))
                         .frame(width: 14, height: 14)
                 }
                 .frame(width: 18, height: 18)
