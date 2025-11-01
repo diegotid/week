@@ -127,15 +127,14 @@ struct HybridWeekWidgetEntryView: View {
             .padding(.trailing, 3)
             .frame(maxWidth: .infinity)
             VStack(spacing: 2) {
-                HStack(spacing: 0) {
-                    Spacer(minLength: 18)
+                HStack(spacing: 9.4) {
                     ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
                         Text(sym)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .frame(width: 18)
                     }
                 }
+                .padding(.leading, 18)
                 weekRow(currentWeek, weekNumber: week, highlightDate: entry.date, currentMonth: currentMonth)
                 weekRow(followingWeek, weekNumber: week + 1, highlightDate: entry.date, currentMonth: currentMonth)
             }

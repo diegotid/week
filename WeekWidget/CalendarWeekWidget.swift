@@ -58,7 +58,7 @@ struct CalendarWeekWidgetEntryView: View {
         return (week, totalWeeks)
     }
 
-    private func startOfISOWeek(containing date: Date) -> Date {
+    private func startOfWeek(containing date: Date) -> Date {
         let start = displayCal.dateInterval(of: .weekOfYear, for: date)?.start ?? displayCal.startOfDay(for: date)
         return start
     }
@@ -71,14 +71,22 @@ struct CalendarWeekWidgetEntryView: View {
     private func month(_ date: Date) -> Int { displayCal.component(.month, from: date) }
     private func year(_ date: Date) -> Int { displayCal.component(.year, from: date)}
 
+    private func isoWeekNumber(forWeekStarting start: Date) -> Int {
+        let isoFirst = cal.firstWeekday
+        let displayFirst = displayCal.firstWeekday
+        let delta = isoFirst - displayFirst
+        let reference = displayCal.date(byAdding: .day, value: delta, to: start) ?? start
+        return cal.component(.weekOfYear, from: reference)
+    }
+
     private func weekStartDatesForMonth(containing date: Date) -> [Date] {
         guard let firstOfMonth = displayCal.date(from: displayCal.dateComponents([.year, .month], from: date)),
               let range = displayCal.range(of: .day, in: .month, for: date) else {
             return []
         }
-        let firstWeekStart = startOfISOWeek(containing: firstOfMonth)
+        let firstWeekStart = startOfWeek(containing: firstOfMonth)
         let lastOfMonth = displayCal.date(byAdding: .day, value: range.count - 1, to: firstOfMonth)!
-        let lastWeekStart = startOfISOWeek(containing: lastOfMonth)
+        let lastWeekStart = startOfWeek(containing: lastOfMonth)
         var weekStarts: [Date] = []
         var current = firstWeekStart
         while current <= lastWeekStart {
@@ -110,17 +118,16 @@ struct CalendarWeekWidgetEntryView: View {
                 .padding(.horizontal, 8)
             }
             VStack(spacing: 2) {
-                HStack(spacing: 0) {
-                    Spacer(minLength: 18)
+                HStack(spacing: 9.4) {
                     ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
                         Text(sym)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .frame(width: 18)
                     }
                 }
+                .padding(.leading, 18)
                 ForEach(weekStarts, id: \.self) { weekStart in
-                    let weekNumber = cal.component(.weekOfYear, from: weekStart)
+                    let weekNumber = isoWeekNumber(forWeekStarting: weekStart)
                     let weekDays = daysForWeek(starting: weekStart)
                     weekRow(weekDays,
                             weekNumber: weekNumber,
