@@ -9,6 +9,8 @@ import WidgetKit
 import SwiftUI
 
 struct HybridWeekWidgetEntryView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    
     var entry: Provider.Entry
 
     private var cal: Calendar {
@@ -23,7 +25,6 @@ struct HybridWeekWidgetEntryView: View {
         return c
     }
     
-    // Add a formatter that disables grouping separator
     private static var noGroupYearFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.locale = Locale.current
@@ -161,18 +162,27 @@ struct HybridWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color("AccentColor"))
+                            .fill(highlightFillColor())
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
                         .font(.caption2)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                        .foregroundStyle(isToday ? .black : (isOtherMonth ? .secondary : .primary))
+                        .foregroundStyle(isToday ? .white : (isOtherMonth ? .secondary : .primary))
                         .frame(width: 14, height: 14)
                 }
                 .frame(width: 18, height: 18)
             }
+        }
+    }
+    
+    private func highlightFillColor() -> Color {
+        switch renderingMode {
+        case .accented:
+            return Color("AccentColor").opacity(0.25)
+        default:
+            return Color("AccentColor")
         }
     }
 }

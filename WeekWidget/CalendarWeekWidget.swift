@@ -9,6 +9,8 @@ import WidgetKit
 import SwiftUI
 
 struct CalendarWeekWidgetEntryView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    
     var entry: SimpleEntry
     var showHeader: Bool = true
 
@@ -159,7 +161,7 @@ struct CalendarWeekWidgetEntryView: View {
                 ZStack(alignment: .center) {
                     if isToday {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color("AccentColor"))
+                            .fill(highlightFillColor())
                             .frame(width: 18, height: 18)
                     }
                     Text("\(dayNumber(day))")
@@ -167,7 +169,7 @@ struct CalendarWeekWidgetEntryView: View {
                         .fontWeight(isToday ? .bold : .regular)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                        .foregroundStyle(isToday ? .black : (isOtherMonth ? .secondary : .primary))
+                        .foregroundStyle(isToday ? .white : (isOtherMonth ? .secondary : .primary))
                         .frame(width: 14, height: 14)
                 }
                 .frame(width: 18, height: 18)
@@ -181,6 +183,15 @@ struct CalendarWeekWidgetEntryView: View {
                 }
             }
         )
+    }
+    
+    private func highlightFillColor() -> Color {
+        switch renderingMode {
+        case .accented:
+            return Color("AccentColor").opacity(0.25)
+        default:
+            return Color("AccentColor")
+        }
     }
 }
 
