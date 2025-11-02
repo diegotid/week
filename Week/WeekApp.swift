@@ -147,16 +147,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func updateDockIcon() {
         let digits = weekNumberDigits(for: Date())
-        guard !digits.isEmpty else { return }
+        guard !digits.isEmpty else {
+            return
+        }
+        let tile = NSApp.dockTile
+        let size = tile.size
+        let scale = NSScreen.main?.backingScaleFactor
+            ?? NSScreen.screens.first?.backingScaleFactor
+            ?? 2.0
+        let pixelWidth  = max(1, Int((size.width  * scale).rounded()))
+        let pixelHeight = max(1, Int((size.height * scale).rounded()))
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelWidth,
+            pixelsHigh: pixelHeight,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return
+        }
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else { return }
+        NSGraphicsContext.current = ctx
+        let rect = NSRect(origin: .zero, size: size)
         let iconSource = baseIcon ?? NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
         let variant = currentDockIconVariant()
-        let composed = NSImage(size: iconSource.size, flipped: false) { [self] rect -> Bool in
-            drawDockIcon(in: rect, base: iconSource, variant: variant, weekNumber: digits)
-            return true
-        }
-        composed.isTemplate = false
-        NSApp.applicationIconImage = composed
-        NSApp.dockTile.display()
+        drawDockIcon(in: rect, base: iconSource, variant: variant, weekNumber: digits)
+        NSGraphicsContext.restoreGraphicsState()
+        let image = NSImage(size: size)
+        image.addRepresentation(rep)
+        image.isTemplate = false
+        let view = NSImageView(frame: NSRect(origin: .zero, size: size))
+        view.image = image
+        view.imageScaling = .scaleNone
+        view.wantsLayer = true
+        view.layer?.contentsScale = scale
+        tile.contentView = view
+        tile.display()
     }
 
     private func drawDockIcon(in rect: NSRect, base: NSImage, variant: DockIconVariant, weekNumber: String) {
@@ -211,45 +244,70 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func drawDockIconText(in rect: NSRect, style: DockIconStyle, weekNumber: String) {
-        let scale: CGFloat = 2.0
-        let hiResSize = CGSize(width: rect.size.width * scale, height: rect.size.height * scale)
-        let hiResImage = renderHighResTextImage(size: hiResSize, scale: scale, style: style, weekNumber: weekNumber)
+        let scale = NSScreen.main?.backingScaleFactor
+            ?? NSScreen.screens.first?.backingScaleFactor
+            ?? 2.0
+        let hiResImage = renderDockIconTextImage(size: rect.size,
+                                                scale: scale,
+                                                style: style,
+                                                weekNumber: weekNumber)
         hiResImage.draw(
             in: rect,
-            from: NSRect(origin: .zero, size: hiResSize),
+            from: NSRect(origin: .zero, size: rect.size),
             operation: .sourceOver,
             fraction: 1.0
         )
     }
 
-    private func renderHighResTextImage(size: CGSize, scale: CGFloat, style: DockIconStyle, weekNumber: String) -> NSImage {
-        let hiResImage = NSImage(size: size)
-        hiResImage.lockFocusFlipped(false)
-        if let ctx = NSGraphicsContext.current {
-            ctx.cgContext.saveGState()
-            ctx.cgContext.scaleBy(x: scale, y: scale)
-            let logicalRect = CGRect(origin: .zero, size: CGSize(width: size.width / scale, height: size.height / scale))
-            let weekFontSize = logicalRect.width * 0.2
-            let numberFontSize = logicalRect.width * 0.5
-            let weekAttributes = dockTextAttributes(color: style.weekTextColor,
-                                                    fontSize: weekFontSize,
-                                                    weight: .semibold)
-            let numberAttributes = dockTextAttributes(color: style.numberTextColor,
-                                                      fontSize: numberFontSize,
-                                                      weight: .bold)
-            drawCentered("Week",
-                         centerY: logicalRect.minY + logicalRect.height * 0.76,
-                         in: logicalRect,
-                         attributes: weekAttributes)
-            drawCentered(weekNumber,
-                         centerY: logicalRect.minY + logicalRect.height * 0.4,
-                         in: logicalRect,
-                         attributes: numberAttributes)
-
-            ctx.cgContext.restoreGState()
+    private func renderDockIconTextImage(
+        size: CGSize,
+        scale: CGFloat,
+        style: DockIconStyle,
+        weekNumber: String
+    ) -> NSImage {
+        let pixelWidth  = max(1, Int((size.width  * scale).rounded()))
+        let pixelHeight = max(1, Int((size.height * scale).rounded()))
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelWidth,
+            pixelsHigh: pixelHeight,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            let fallback = NSImage(size: size)
+            fallback.lockFocusFlipped(false)
+            defer { fallback.unlockFocus() }
+            let logicalRect = CGRect(origin: .zero, size: size)
+            drawDockTextBlock(in: logicalRect, style: style, weekNumber: weekNumber)
+            return fallback
         }
-        hiResImage.unlockFocus()
-        return hiResImage
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else {
+            NSGraphicsContext.restoreGraphicsState()
+            let image = NSImage(size: size)
+            image.addRepresentation(rep)
+            return image
+        }
+        NSGraphicsContext.current = ctx
+        let cg = ctx.cgContext
+        cg.interpolationQuality = .none
+        cg.setAllowsAntialiasing(true)
+        cg.setShouldAntialias(true)
+        cg.setAllowsFontSmoothing(true)
+        cg.setShouldSmoothFonts(true)
+        func snap(_ x: CGFloat) -> CGFloat { floor(x * scale) / scale }
+        let logicalRect = CGRect(origin: .zero, size: size)
+        drawDockTextBlock(in: logicalRect, style: style, weekNumber: weekNumber, snap: snap)
+        NSGraphicsContext.restoreGraphicsState()
+        let image = NSImage(size: size)
+        image.addRepresentation(rep)
+        return image
     }
 
     private func drawCentered(_ text: String,
@@ -267,19 +325,64 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         attributed.draw(in: textRect, withAttributes: attributes)
     }
 
-    private func dockTextAttributes(color: NSColor,
-                                    fontSize: CGFloat,
-                                    weight: NSFont.Weight) -> [NSAttributedString.Key: Any] {
+    private func dockTextAttributes(
+        color: NSColor,
+        fontName: String,
+        fontSize: CGFloat,
+        weight: NSFont.Weight,
+        letterSpacing: CGFloat
+    ) -> [NSAttributedString.Key: Any] {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
-        let font = NSFont(name: "SF Pro Rounded Bold", size: fontSize)
-            ?? NSFont(name: "SF Pro Rounded Semibold", size: fontSize)
-            ?? NSFont.systemFont(ofSize: fontSize, weight: weight)
+        let font = NSFont(name: fontName, size: fontSize) ?? NSFont.systemFont(ofSize: fontSize, weight: weight)
         return [
             .font: font,
             .foregroundColor: color,
-            .paragraphStyle: paragraph
+            .paragraphStyle: paragraph,
+            .kern: letterSpacing * fontSize
         ]
+    }
+    
+    private struct DockTextItem {
+        let text: String
+        let color: NSColor
+        let fontName: String
+        let sizeRatio: CGFloat
+        let weight: NSFont.Weight
+        let centerYRatio: CGFloat
+        let letterSpacing: CGFloat
+    }
+
+    private func drawDockTextBlock(in rect: CGRect,
+                                   style: DockIconStyle,
+                                   weekNumber: String,
+                                   snap: (CGFloat) -> CGFloat = { $0 }) {
+        let items = [
+            DockTextItem(text: "Week",
+                         color: style.weekTextColor,
+                         fontName: "SF Compact Rounded",
+                         sizeRatio: 0.21,
+                         weight: .regular,
+                         centerYRatio: 0.79,
+                         letterSpacing: -0.02),
+            DockTextItem(text: weekNumber,
+                         color: style.numberTextColor,
+                         fontName: "SF Pro Rounded",
+                         sizeRatio: 0.56,
+                         weight: .semibold,
+                         centerYRatio: 0.39,
+                         letterSpacing: -0.01)
+        ]
+        for it in items {
+            let fontSize = rect.width * it.sizeRatio
+            let attrs = dockTextAttributes(color: it.color,
+                                           fontName: it.fontName,
+                                           fontSize: fontSize,
+                                           weight: it.weight,
+                                           letterSpacing: it.letterSpacing)
+            let centerY = snap(rect.minY + rect.height * it.centerYRatio)
+            drawCentered(it.text, centerY: centerY, in: rect, attributes: attrs)
+        }
     }
 
     private func currentDockIconVariant() -> DockIconVariant {
