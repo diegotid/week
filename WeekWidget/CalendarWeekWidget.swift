@@ -102,42 +102,45 @@ struct CalendarWeekWidgetEntryView: View {
         let currentMonth = month(entry.date)
         let weekStarts = weekStartDatesForMonth(containing: entry.date)
 
-        VStack(alignment: .center, spacing: 6) {
-            if showHeader {
-                HStack(alignment: .bottom, spacing: 3) {
-                    Text("Week")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color("AccentColor"))
-                    Text("\(week)")
-                        .font(.system(size: 12, weight: .bold))
-                        .bold()
-                    Spacer()
-                    Text(monthYearString(for: entry.date))
-                        .font(.system(size: 11))
+        Link(destination: URL(string: "weekapp://opencalendar")!) {
+            VStack(alignment: .center, spacing: 6) {
+                if showHeader {
+                    HStack(alignment: .bottom, spacing: 3) {
+                        Text("Week")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color("AccentColor"))
+                        Text("\(week)")
+                            .font(.system(size: 12, weight: .bold))
+                            .bold()
+                        Spacer()
+                        Text(monthYearString(for: entry.date))
+                            .font(.system(size: 11))
+                    }
+                    .padding(.horizontal, 8)
                 }
-                .padding(.horizontal, 8)
-            }
-            VStack(spacing: 2) {
-                HStack(spacing: 9.4) {
-                    ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
-                        Text(sym)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                VStack(spacing: 2) {
+                    HStack(spacing: 9.4) {
+                        ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
+                            Text(sym)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.leading, 18)
+                    ForEach(weekStarts, id: \.self) { weekStart in
+                        let weekNumber = isoWeekNumber(forWeekStarting: weekStart)
+                        let weekDays = daysForWeek(starting: weekStart)
+                        weekRow(weekDays,
+                                weekNumber: weekNumber,
+                                highlightDate: entry.date,
+                                currentMonth: currentMonth,
+                                isCurrent: weekNumber == week)
                     }
                 }
-                .padding(.leading, 18)
-                ForEach(weekStarts, id: \.self) { weekStart in
-                    let weekNumber = isoWeekNumber(forWeekStarting: weekStart)
-                    let weekDays = daysForWeek(starting: weekStart)
-                    weekRow(weekDays,
-                            weekNumber: weekNumber,
-                            highlightDate: entry.date,
-                            currentMonth: currentMonth,
-                            isCurrent: weekNumber == week)
-                }
+                .padding(.trailing, 4)
             }
-            .padding(.trailing, 4)
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

@@ -79,6 +79,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                                                selector: #selector(appDidBecomeActive(_:)),
                                                name: NSApplication.didBecomeActiveNotification,
                                                object: nil)
+        
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+    
+    @objc func handleURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
+        guard let urlString = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: urlString) else { return }
+        
+        if url.scheme == "weekapp" && url.host == "opencalendar" {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+        }
     }
 
     @objc private func appDidBecomeActive(_ notification: Notification) {

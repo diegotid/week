@@ -4,5 +4,16 @@
 <dict>
 	<key>CFBundleIconName</key>
 	<string>WeekIcon</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.cuatrostudio.week</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>weekapp</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
