@@ -99,47 +99,50 @@ struct HybridWeekWidgetEntryView: View {
         let yr = year(entry.date)
         let yearString = HybridWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: yr)) ?? "\(yr)"
 
-        VStack(alignment: .center, spacing: 14) {
-            HStack(alignment: .bottom, spacing: 16) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 6) {
-                        Text("Week")
-                            .font(.system(size: 11, weight: .bold))
+        Link(destination: URL(string: "weekapp://opencalendar")!) {
+            VStack(alignment: .center, spacing: 14) {
+                HStack(alignment: .bottom, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 6) {
+                            Text("Week")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Color("AccentColor"))
+                        }
+                        .padding(.leading, 3)
+                        .padding(.bottom, -6)
+                        Text("\(week)")
+                            .font(.system(size: 42))
+                    }
+                    .padding(.leading, 6)
+                    Gauge(value: yearProgress) {
+                        Text(yearString)
+                            .font(.caption)
+                    } currentValueLabel: {
+                        shortDayMonth(for: entry.date)
                             .foregroundStyle(Color("AccentColor"))
                     }
-                    .padding(.leading, 3)
-                    .padding(.bottom, -6)
-                    Text("\(week)")
-                        .font(.system(size: 42))
+                    .gaugeStyle(.accessoryCircular)
+                    .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
                 }
-                .padding(.leading, 6)
-                Gauge(value: yearProgress) {
-                    Text(yearString)
-                        .font(.caption)
-                } currentValueLabel: {
-                    shortDayMonth(for: entry.date)
-                        .foregroundStyle(Color("AccentColor"))
-                }
-                .gaugeStyle(.accessoryCircular)
-                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
-            }
-            .padding(.top, 1)
-            .padding(.trailing, 3)
-            .frame(maxWidth: .infinity)
-            VStack(spacing: 2) {
-                HStack(spacing: 9.4) {
-                    ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
-                        Text(sym)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                .padding(.top, 1)
+                .padding(.trailing, 3)
+                .frame(maxWidth: .infinity)
+                VStack(spacing: 2) {
+                    HStack(spacing: 9.4) {
+                        ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
+                            Text(sym)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .padding(.leading, 18)
+                    weekRow(currentWeek, weekNumber: week, highlightDate: entry.date, currentMonth: currentMonth)
+                    weekRow(followingWeek, weekNumber: week + 1, highlightDate: entry.date, currentMonth: currentMonth)
                 }
-                .padding(.leading, 18)
-                weekRow(currentWeek, weekNumber: week, highlightDate: entry.date, currentMonth: currentMonth)
-                weekRow(followingWeek, weekNumber: week + 1, highlightDate: entry.date, currentMonth: currentMonth)
+                .padding(.trailing, 4)
             }
-            .padding(.trailing, 4)
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
