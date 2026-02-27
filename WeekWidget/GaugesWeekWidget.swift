@@ -88,14 +88,14 @@ struct GaugesWeekWidgetEntryView: View {
 
         Link(destination: URL(string: "weekapp://opencalendar")!) {
             HStack(alignment: .bottom, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 6) {
                             Text("Week")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(Color("AccentColor"))
                         }
-                        .padding(.leading, 6)
+                        .padding(.leading, 2)
                         .padding(.bottom, -6)
                         Text("\(week)")
                             .font(.system(size: 42))
@@ -111,7 +111,7 @@ struct GaugesWeekWidgetEntryView: View {
                     .gaugeStyle(.accessoryCircular)
                     .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
                 }
-                VStack(alignment: .trailing, spacing: 8) {
+                VStack(alignment: .trailing, spacing: 12) {
                     Gauge(value: weekProgress) {
                         Text("\(week)")
                     } currentValueLabel: {
