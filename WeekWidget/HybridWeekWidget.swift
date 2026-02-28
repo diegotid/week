@@ -102,21 +102,20 @@ struct HybridWeekWidgetEntryView: View {
         let yearString = HybridWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: yr)) ?? "\(yr)"
 
         Link(destination: URL(string: "weekapp://opencalendar")!) {
-            VStack(alignment: .center, spacing: 9) {
-                HStack(alignment: .bottom, spacing: 44) {
+            VStack(alignment: .center, spacing: 6) {
+                HStack(alignment: .bottom, spacing: 15) {
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text("Week")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color("AccentColor"))
-                        }
-                        .padding(.leading, 3)
-                        .padding(.bottom, -6)
+                        Text("Week")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color("AccentColor"))
+                            .padding(.leading, 3)
+                            .padding(.bottom, -6)
                         Text("\(week)")
                             .font(.system(size: 36))
+                            .frame(minWidth: 60, alignment: .leading)
                     }
-                    .padding(.leading, 6)
                     .padding(.bottom, 2)
+                    .padding(.leading, 9)
                     Gauge(value: yearProgress) {
                         Text(yearString)
                             .font(.caption)
@@ -130,6 +129,7 @@ struct HybridWeekWidgetEntryView: View {
                     .padding(.top, 6)
                 }
                 .padding(.top, 1)
+                .padding(.leading, -2)
                 .padding(.trailing, 3)
                 .frame(maxWidth: .infinity)
                 VStack(spacing: 2) {

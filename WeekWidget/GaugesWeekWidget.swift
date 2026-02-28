@@ -95,12 +95,12 @@ struct GaugesWeekWidgetEntryView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(Color("AccentColor"))
                         }
-                        .padding(.leading, 2)
+                        .padding(.leading, 4)
                         .padding(.bottom, -6)
                         Text("\(week)")
                             .font(.system(size: 42))
+                            .frame(minWidth: 60, alignment: .leading)
                     }
-                    .padding(.leading, 3)
                     Gauge(value: qProgress) {
                         Text("Q\(q)")
                     } currentValueLabel: {
