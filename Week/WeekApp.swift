@@ -11,20 +11,15 @@ import AppKit
 @main
 struct WeekApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @Environment(\.openWindow) var openWindow
     
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .fixedWindow(size: CGSize(width: 820, height: 660))
-        }
-        Window("About Week Number", id: "about") {
-            About()
+        Settings {
+            EmptyView()
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Week Number") {
-                    openWindow(id: "about")
+                    appDelegate.showAboutWindow()
                 }
             }
             CommandGroup(replacing: .newItem) { }
@@ -60,17 +55,33 @@ struct WeekStatusPanelView: View {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var updateTimer: Timer?
     var popover: NSPopover?
     private var baseIcon: NSImage?
+    private var mainWindow: NSWindow?
+    private var aboutWindow: NSWindow?
+    private let calendarApplicationPaths = [
+        "/System/Applications/Calendar.app",
+        "/Applications/Calendar.app"
+    ]
+    private var hasFinishedLaunching = false
+    private var shouldOpenCalendarAfterLaunch = false
+    private var pendingMainWindowOpen: DispatchWorkItem?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
     }
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+        hasFinishedLaunching = true
         setupStatusItem()
         scheduleMidnightUpdate()
         cacheBaseIcon()
@@ -80,25 +91,123 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                                                name: NSApplication.didBecomeActiveNotification,
                                                object: nil)
         
-        NSAppleEventManager.shared().setEventHandler(
-            self,
-            andSelector: #selector(handleURLEvent(_:withReplyEvent:)),
-            forEventClass: AEEventClass(kInternetEventClass),
-            andEventID: AEEventID(kAEGetURL)
-        )
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            if self.shouldOpenCalendarAfterLaunch {
+                self.shouldOpenCalendarAfterLaunch = false
+                self.forwardWidgetLaunchToCalendar()
+            } else {
+                self.showMainWindow()
+            }
+        }
+        pendingMainWindowOpen = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
     }
     
     @objc func handleURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
         guard let urlString = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let url = URL(string: urlString) else { return }
-        
+
+        handleOpenURL(url)
+    }
+
+    private func handleOpenURL(_ url: URL) {
         if url.scheme == "weekapp" && url.host == "opencalendar" {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+            if hasFinishedLaunching {
+                pendingMainWindowOpen?.cancel()
+                pendingMainWindowOpen = nil
+                mainWindow?.close()
+                forwardWidgetLaunchToCalendar()
+            } else {
+                shouldOpenCalendarAfterLaunch = true
+            }
         }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard !flag else { return false }
+        showMainWindow()
+        return true
     }
 
     @objc private func appDidBecomeActive(_ notification: Notification) {
         updateDockIcon()
+    }
+
+    private func forwardWidgetLaunchToCalendar() {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+        let workspace = NSWorkspace.shared
+        let fileManager = FileManager.default
+
+        if let calendarPath = calendarApplicationPaths.first(where: { fileManager.fileExists(atPath: $0) }) {
+            let calendarURL = URL(fileURLWithPath: calendarPath)
+            workspace.openApplication(at: calendarURL, configuration: configuration) { _, _ in
+                DispatchQueue.main.async {
+                    self.mainWindow?.close()
+                    NSApp.hide(nil)
+                }
+            }
+        }
+    }
+
+    private func showMainWindow() {
+        if let existingWindow = mainWindow {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let rootView = ContentView()
+        let controller = NSHostingController(rootView: rootView)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 660),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.center()
+        window.title = "Week Number"
+        window.contentViewController = controller
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.setContentSize(CGSize(width: 820, height: 660))
+        window.minSize = CGSize(width: 820, height: 660)
+        window.maxSize = CGSize(width: 820, height: 660)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        mainWindow = window
+    }
+
+    func showAboutWindow() {
+        if let existingWindow = aboutWindow {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let controller = NSHostingController(rootView: About())
+        let window = NSWindow(
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: Frame.aboutWindowWidth,
+                height: Frame.aboutWindowHeight
+            ),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.center()
+        window.title = "About Week Number"
+        window.contentViewController = controller
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.minSize = CGSize(width: Frame.aboutWindowWidth, height: Frame.aboutWindowHeight)
+        window.maxSize = CGSize(width: Frame.aboutWindowWidth, height: Frame.aboutWindowHeight)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        aboutWindow = window
     }
 
     func setupStatusItem() {
@@ -134,6 +243,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     
     func popoverDidClose(_ notification: Notification) {
         self.popover = nil
+    }
+
+    @objc func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else {
+            return
+        }
+
+        if window === mainWindow {
+            mainWindow = nil
+        } else if window === aboutWindow {
+            aboutWindow = nil
+        }
     }
     
     func weekNumberTitle(for date: Date) -> String {

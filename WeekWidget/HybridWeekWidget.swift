@@ -8,6 +8,8 @@
 import WidgetKit
 import SwiftUI
 
+private let openCalendarURL = URL(string: "weekapp://opencalendar")!
+
 struct HybridWeekWidgetEntryView: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
     
@@ -101,55 +103,53 @@ struct HybridWeekWidgetEntryView: View {
         let yr = year(entry.date)
         let yearString = HybridWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: yr)) ?? "\(yr)"
 
-        Link(destination: URL(string: "weekapp://opencalendar")!) {
-            VStack(alignment: .center, spacing: 6) {
-                HStack(alignment: .bottom, spacing: 15) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Week")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color("AccentColor"))
-                            .padding(.leading, 3)
-                            .padding(.bottom, -6)
-                        Text("\(week)")
-                            .font(.system(size: 36))
-                            .frame(minWidth: 60, alignment: .leading)
-                    }
-                    .padding(.bottom, 2)
-                    .padding(.leading, 9)
-                    Gauge(value: yearProgress) {
-                        Text(yearString)
-                            .font(.caption)
-                    } currentValueLabel: {
-                        shortDayMonth(for: entry.date)
-                            .foregroundStyle(Color("AccentColor"))
-                    }
-                    .gaugeStyle(.accessoryCircular)
-                    .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
-                    .scaleEffect(0.92)
-                    .padding(.top, 6)
+        VStack(alignment: .center, spacing: 6) {
+            HStack(alignment: .bottom, spacing: 15) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Week")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
+                        .padding(.leading, 3)
+                        .padding(.bottom, -6)
+                    Text("\(week)")
+                        .font(.system(size: 36))
+                        .frame(minWidth: 60, alignment: .leading)
                 }
-                .padding(.top, 1)
-                .padding(.leading, -2)
-                .padding(.trailing, 3)
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 2) {
-                    HStack(spacing: 9.4) {
-                        ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
-                            Text(sym)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.leading, 18)
-                    weekRow(previousWeek, weekNumber: week - 1, highlightDate: entry.date, currentMonth: currentMonth)
-                    weekRow(currentWeek, weekNumber: week, highlightDate: entry.date, currentMonth: currentMonth)
-                    weekRow(followingWeek, weekNumber: week + 1, highlightDate: entry.date, currentMonth: currentMonth)
+                .padding(.bottom, 2)
+                .padding(.leading, 9)
+                Gauge(value: yearProgress) {
+                    Text(yearString)
+                        .font(.caption)
+                } currentValueLabel: {
+                    shortDayMonth(for: entry.date)
+                        .foregroundStyle(Color("AccentColor"))
                 }
-                .padding(.trailing, 4)
+                .gaugeStyle(.accessoryCircular)
+                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+                .scaleEffect(0.92)
+                .padding(.top, 6)
             }
+            .padding(.top, 1)
+            .padding(.leading, -2)
+            .padding(.trailing, 3)
+            .frame(maxWidth: .infinity)
+            VStack(spacing: 2) {
+                HStack(spacing: 9.4) {
+                    ForEach(weekdaySymbolsOrdered(), id: \.self) { sym in
+                        Text(sym)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.leading, 18)
+                weekRow(previousWeek, weekNumber: week - 1, highlightDate: entry.date, currentMonth: currentMonth)
+                weekRow(currentWeek, weekNumber: week, highlightDate: entry.date, currentMonth: currentMonth)
+                weekRow(followingWeek, weekNumber: week + 1, highlightDate: entry.date, currentMonth: currentMonth)
+            }
+            .padding(.trailing, 4)
         }
         .padding(.bottom, 9)
-        .buttonStyle(.plain)
+        .widgetURL(openCalendarURL)
     }
 
     @ViewBuilder

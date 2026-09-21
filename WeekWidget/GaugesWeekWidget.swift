@@ -8,6 +8,8 @@
 import WidgetKit
 import SwiftUI
 
+private let openCalendarURL = URL(string: "weekapp://opencalendar")!
+
 struct GaugesWeekWidgetEntryView: View {
     var entry: Provider.Entry
 
@@ -86,54 +88,52 @@ struct GaugesWeekWidgetEntryView: View {
         let year = displayCal.component(.year, from: entry.date)
         let yearString = GaugesWeekWidgetEntryView.noGroupYearFormatter.string(from: NSNumber(value: year)) ?? "\(year)"
 
-        Link(destination: URL(string: "weekapp://opencalendar")!) {
-            HStack(alignment: .bottom, spacing: 14) {
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 6) {
-                            Text("Week")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Color("AccentColor"))
-                        }
-                        .padding(.leading, 4)
-                        .padding(.bottom, -6)
-                        Text("\(week)")
-                            .font(.system(size: 42))
-                            .frame(minWidth: 60, alignment: .leading)
-                    }
-                    Gauge(value: qProgress) {
-                        Text("Q\(q)")
-                    } currentValueLabel: {
-                        Text("\(Int(round(qProgress * 100)))%")
+        HStack(alignment: .bottom, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 6) {
+                        Text("Week")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(Color("AccentColor"))
                     }
-                    .gaugeStyle(.accessoryCircular)
-                    .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+                    .padding(.leading, 4)
+                    .padding(.bottom, -6)
+                    Text("\(week)")
+                        .font(.system(size: 42))
+                        .frame(minWidth: 60, alignment: .leading)
                 }
-                VStack(alignment: .trailing, spacing: 12) {
-                    Gauge(value: weekProgress) {
-                        Text("\(week)")
-                    } currentValueLabel: {
-                        Text(shortWeekday(for: entry.date))
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color("AccentColor"))
-                    }
-                    .gaugeStyle(.accessoryCircular)
-                    .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
-                    Gauge(value: yearProgress) {
-                        Text(yearString)
-                            .font(.caption)
-                    } currentValueLabel: {
-                        shortDayMonth(for: entry.date)
-                            .foregroundStyle(Color("AccentColor"))
-                    }
-                    .gaugeStyle(.accessoryCircular)
-                    .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+                Gauge(value: qProgress) {
+                    Text("Q\(q)")
+                } currentValueLabel: {
+                    Text("\(Int(round(qProgress * 100)))%")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
                 }
+                .gaugeStyle(.accessoryCircular)
+                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+            }
+            VStack(alignment: .trailing, spacing: 12) {
+                Gauge(value: weekProgress) {
+                    Text("\(week)")
+                } currentValueLabel: {
+                    Text(shortWeekday(for: entry.date))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color("AccentColor"))
+                }
+                .gaugeStyle(.accessoryCircular)
+                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
+                Gauge(value: yearProgress) {
+                    Text(yearString)
+                        .font(.caption)
+                } currentValueLabel: {
+                    shortDayMonth(for: entry.date)
+                        .foregroundStyle(Color("AccentColor"))
+                }
+                .gaugeStyle(.accessoryCircular)
+                .tint(Gradient(colors: [.primary.opacity(0.25), .primary]))
             }
         }
-        .buttonStyle(.plain)
+        .widgetURL(openCalendarURL)
     }
 }
 
