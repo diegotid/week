@@ -137,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     func weekNumberTitle(for date: Date) -> String {
-        let week = Calendar.current.component(.weekOfYear, from: date)
+        let week = isoWeekNumber(for: date)
         return "Week \(week)"
     }
     
@@ -485,7 +485,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func weekNumberDigits(for date: Date) -> String {
-        let week = Calendar.current.component(.weekOfYear, from: date)
+        let week = isoWeekNumber(for: date)
         return "\(week)"
+    }
+
+    private func isoWeekNumber(for date: Date) -> Int {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .current
+        return calendar.component(.weekOfYear, from: date)
     }
 }
