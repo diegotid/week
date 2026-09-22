@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import CoreText
 
 @main
 struct WeekApp: App {
@@ -55,11 +56,24 @@ struct WeekStatusPanelView: View {
     }
 }
 
+private final class WeekDockTileView: NSView {
+    var drawIcon: ((NSRect) -> Void)?
+
+    override var isOpaque: Bool { false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        drawIcon?(bounds)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var updateTimer: Timer?
+    private var iconStyleTimer: Timer?
+    private var lastDockStyle: DockStyle?
+    private var lastDockTintSetting: String?
     var popover: NSPopover?
-    private var baseIcon: NSImage?
     private var mainWindow: NSWindow?
     private var aboutWindow: NSWindow?
     private let calendarApplicationPaths = [
@@ -84,8 +98,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowD
         hasFinishedLaunching = true
         setupStatusItem()
         scheduleMidnightUpdate()
-        cacheBaseIcon()
         updateDockIcon()
+        watchIconStyle()
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(appDidBecomeActive(_:)),
                                                name: NSApplication.didBecomeActiveNotification,
@@ -277,337 +291,250 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowD
         scheduleMidnightUpdate()
     }
 
-    private func cacheBaseIcon() {
-        baseIcon = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
-        baseIcon?.isTemplate = false
-    }
-
     private func updateDockIcon() {
-        let digits = weekNumberDigits(for: Date())
-        guard !digits.isEmpty else {
-            return
-        }
+        let date = Date()
+        let week = isoWeekNumber(for: date)
+        let style = currentDockStyle()
+        lastDockStyle = style
+        lastDockTintSetting = dockTintSetting()
+        let tintColor = currentDockTintColor()
         let tile = NSApp.dockTile
-        let size = tile.size
-        let scale = NSScreen.main?.backingScaleFactor
-            ?? NSScreen.screens.first?.backingScaleFactor
-            ?? 2.0
-        let pixelWidth  = max(1, Int((size.width  * scale).rounded()))
-        let pixelHeight = max(1, Int((size.height * scale).rounded()))
-        guard let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: pixelWidth,
-            pixelsHigh: pixelHeight,
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: 0,
-            bitsPerPixel: 0
-        ) else {
-            return
+        let view = (tile.contentView as? WeekDockTileView)
+            ?? WeekDockTileView(frame: NSRect(origin: .zero, size: tile.size))
+        view.autoresizingMask = [.width, .height]
+        view.drawIcon = { [weak self] bounds in
+            self?.drawDockIcon(in: bounds, week: week, date: date,
+                               style: style, tintColor: tintColor)
         }
-        rep.size = size
-        NSGraphicsContext.saveGraphicsState()
-        guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else { return }
-        NSGraphicsContext.current = ctx
-        let rect = NSRect(origin: .zero, size: size)
-        let iconSource = baseIcon ?? NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
-        let variant = currentDockIconVariant()
-        drawDockIcon(in: rect, base: iconSource, variant: variant, weekNumber: digits)
-        NSGraphicsContext.restoreGraphicsState()
-        let image = NSImage(size: size)
-        image.addRepresentation(rep)
-        image.isTemplate = false
-        let view = NSImageView(frame: NSRect(origin: .zero, size: size))
-        view.image = image
-        view.imageScaling = .scaleNone
-        view.wantsLayer = true
-        view.layer?.contentsScale = scale
-        tile.contentView = view
+        if tile.contentView !== view { tile.contentView = view }
         tile.display()
     }
 
-    private func drawDockIcon(in rect: NSRect, base: NSImage, variant: DockIconVariant, weekNumber: String) {
-        base.draw(in: rect)
-        let style = dockIconStyle(for: variant)
-        let inset = rect.width * style.insetRatio
-        let canvasRect = rect.insetBy(dx: inset, dy: inset)
-        let cornerRadius = canvasRect.width * 0.26
-        let roundedPath = NSBezierPath(roundedRect: canvasRect, xRadius: cornerRadius, yRadius: cornerRadius)
-        if let faceImage = renderDockFace(size: canvasRect.size,
-                                          cornerRadius: cornerRadius,
-                                          style: style) {
-            NSGraphicsContext.saveGraphicsState()
-            roundedPath.addClip()
-            faceImage.draw(in: canvasRect,
-                           from: NSRect(origin: .zero, size: faceImage.size),
-                           operation: .sourceOver,
-                           fraction: style.fillOpacity)
-            NSGraphicsContext.restoreGraphicsState()
+    private enum DockStyle: Equatable {
+        case regularLight, regularDark
+        case clearLight, clearDark
+        case tintedLight, tintedDark
+    }
+
+    private func currentDockStyle() -> DockStyle {
+        // macOS records Icon & widget style separately from light/dark app appearance.
+        let setting = UserDefaults.standard.string(forKey: "AppleIconAppearanceTheme") ?? ""
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        switch setting {
+        case "ClearLight": return .clearLight
+        case "ClearDark": return .clearDark
+        case "ClearAutomatic": return isDark ? .clearDark : .clearLight
+        case "TintedLight": return .tintedLight
+        case "TintedDark": return .tintedDark
+        case "TintedAutomatic": return isDark ? .tintedDark : .tintedLight
+        case "RegularDark": return .regularDark
+        case "RegularAutomatic": return isDark ? .regularDark : .regularLight
+        default: return .regularLight
         }
-        drawDockIconText(in: canvasRect, style: style, weekNumber: weekNumber)
     }
 
-    private func renderDockFace(size: CGSize,
-                                cornerRadius: CGFloat,
-                                style: DockIconStyle) -> NSImage? {
-        let rect = NSRect(origin: .zero, size: size)
-        let face = NSImage(size: size, flipped: false) { _ in
-            let path = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
-            NSGraphicsContext.saveGraphicsState()
-            path.addClip()
-            if let gradient = NSGradient(colors: [style.backgroundTop, style.backgroundBottom]) {
-                gradient.draw(in: rect, angle: -90)
-            }
-            if style.highlightAlpha > 0 {
-                let highlightHeight = rect.height * style.highlightCoverage
-                let highlightRect = NSRect(x: rect.minX,
-                                           y: rect.maxY - highlightHeight,
-                                           width: rect.width,
-                                           height: highlightHeight)
-                if let highlight = NSGradient(
-                    starting: NSColor.white.withAlphaComponent(style.highlightAlpha),
-                    ending: NSColor.white.withAlphaComponent(0)
-                ) {
-                    highlight.draw(in: highlightRect, angle: -90)
-                }
-            }
-            NSGraphicsContext.restoreGraphicsState()
-            return true
+    private func watchIconStyle() {
+        iconStyleTimer?.invalidate()
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            guard self.currentDockStyle() != self.lastDockStyle
+                    || self.dockTintSetting() != self.lastDockTintSetting else { return }
+            self.updateDockIcon()
         }
-        return face
+        RunLoop.main.add(timer, forMode: .common)
+        iconStyleTimer = timer
     }
 
-    private func drawDockIconText(in rect: NSRect, style: DockIconStyle, weekNumber: String) {
-        let scale = NSScreen.main?.backingScaleFactor
-            ?? NSScreen.screens.first?.backingScaleFactor
-            ?? 2.0
-        let hiResImage = renderDockIconTextImage(size: rect.size,
-                                                scale: scale,
-                                                style: style,
-                                                weekNumber: weekNumber)
-        hiResImage.draw(
-            in: rect,
-            from: NSRect(origin: .zero, size: rect.size),
-            operation: .sourceOver,
-            fraction: 1.0
-        )
+    private func dockTintSetting() -> String {
+        let defaults = UserDefaults.standard
+        return "\(defaults.string(forKey: "AppleIconAppearanceTintColor") ?? "")|"
+            + (defaults.string(forKey: "AppleIconAppearanceCustomTintColor") ?? "")
     }
 
-    private func renderDockIconTextImage(
-        size: CGSize,
-        scale: CGFloat,
-        style: DockIconStyle,
-        weekNumber: String
-    ) -> NSImage {
-        let pixelWidth  = max(1, Int((size.width  * scale).rounded()))
-        let pixelHeight = max(1, Int((size.height * scale).rounded()))
-        guard let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: pixelWidth,
-            pixelsHigh: pixelHeight,
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: 0,
-            bitsPerPixel: 0
-        ) else {
-            let fallback = NSImage(size: size)
-            fallback.lockFocusFlipped(false)
-            defer { fallback.unlockFocus() }
-            let logicalRect = CGRect(origin: .zero, size: size)
-            drawDockTextBlock(in: logicalRect, style: style, weekNumber: weekNumber)
-            return fallback
+    private func currentDockTintColor() -> NSColor {
+        let defaults = UserDefaults.standard
+        let selection = defaults.string(forKey: "AppleIconAppearanceTintColor") ?? "Blue"
+        if selection == "Other",
+           let components = defaults.string(forKey: "AppleIconAppearanceCustomTintColor")?
+                .split(whereSeparator: { $0.isWhitespace }).compactMap({ Double($0) }),
+           components.count >= 3 {
+            return NSColor(deviceRed: components[0], green: components[1],
+                           blue: components[2], alpha: 1)
         }
-        rep.size = size
-        NSGraphicsContext.saveGraphicsState()
-        guard let ctx = NSGraphicsContext(bitmapImageRep: rep) else {
-            NSGraphicsContext.restoreGraphicsState()
-            let image = NSImage(size: size)
-            image.addRepresentation(rep)
-            return image
+        switch selection.lowercased() {
+        case "purple": return .systemPurple
+        case "pink": return .systemPink
+        case "red": return .systemRed
+        case "orange": return .systemOrange
+        case "yellow": return .systemYellow
+        case "green": return .systemGreen
+        case "gray", "grey": return .systemGray
+        default: return .systemBlue
         }
-        NSGraphicsContext.current = ctx
-        let cg = ctx.cgContext
-        cg.interpolationQuality = .none
-        cg.setAllowsAntialiasing(true)
-        cg.setShouldAntialias(true)
-        cg.setAllowsFontSmoothing(true)
-        cg.setShouldSmoothFonts(true)
-        func snap(_ x: CGFloat) -> CGFloat { floor(x * scale) / scale }
-        let logicalRect = CGRect(origin: .zero, size: size)
-        drawDockTextBlock(in: logicalRect, style: style, weekNumber: weekNumber, snap: snap)
-        NSGraphicsContext.restoreGraphicsState()
-        let image = NSImage(size: size)
-        image.addRepresentation(rep)
-        return image
     }
 
-    private func drawCentered(_ text: String,
-                              centerY: CGFloat,
-                              in rect: NSRect,
-                              attributes: [NSAttributedString.Key: Any]) {
-        let attributed = text as NSString
-        let textSize = attributed.size(withAttributes: attributes)
-        let textRect = NSRect(
-            x: rect.midX - textSize.width / 2,
-            y: centerY - textSize.height / 2,
-            width: textSize.width,
-            height: textSize.height
-        )
-        attributed.draw(in: textRect, withAttributes: attributes)
+    private func drawDockIcon(in rect: NSRect, week: Int, date: Date,
+                              style: DockStyle, tintColor: NSColor) {
+        // The reference artwork is 1024 points square. Scale the complete design
+        // together so the text, rounded face, and progress marks stay aligned.
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+        let padding = min(rect.width, rect.height) * 0.09
+        let iconRect = rect.insetBy(dx: padding, dy: padding)
+        context.saveGState()
+        context.translateBy(x: iconRect.minX, y: iconRect.minY)
+        context.scaleBy(x: iconRect.width / 1024, y: iconRect.height / 1024)
+
+        let face = NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: 1024, height: 1024),
+                                xRadius: 256, yRadius: 256)
+        let wColor: NSColor
+        let numberColor: NSColor
+        let barColor: NSColor
+        let dotColor: NSColor
+        switch style {
+        case .regularLight:
+            NSGradient(starting: .white,
+                       ending: NSColor(deviceRed: 245 / 255, green: 245 / 255,
+                                       blue: 245 / 255, alpha: 1))?
+                .draw(in: face, angle: -90)
+            wColor = NSColor(deviceRed: 235 / 255, green: 52 / 255, blue: 37 / 255, alpha: 1)
+            numberColor = .black
+            barColor = NSColor(deviceRed: 171 / 255, green: 171 / 255,
+                               blue: 171 / 255, alpha: 1)
+            dotColor = wColor
+        case .regularDark:
+            NSGradient(starting: NSColor(deviceRed: 30 / 255, green: 30 / 255,
+                                        blue: 30 / 255, alpha: 1),
+                       ending: NSColor(deviceRed: 15 / 255, green: 15 / 255,
+                                       blue: 15 / 255, alpha: 1))?
+                .draw(in: face, angle: -90)
+            wColor = NSColor(deviceRed: 235 / 255, green: 52 / 255, blue: 37 / 255, alpha: 1)
+            numberColor = .white
+            barColor = NSColor(deviceRed: 171 / 255, green: 171 / 255,
+                               blue: 171 / 255, alpha: 1)
+            dotColor = wColor
+        case .clearLight, .clearDark:
+            // The Dock composites the face over its own backdrop. Clear Dark
+            // uses dark glass, like the other clear icons in the Dock.
+            let isDarkClear = style == .clearDark
+            context.saveGState()
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor(white: 0, alpha: 0.28)
+            shadow.shadowBlurRadius = 18
+            shadow.shadowOffset = NSSize(width: 0, height: -8)
+            shadow.set()
+            (isDarkClear
+                ? NSColor(deviceRed: 0.02, green: 0.05, blue: 0.08, alpha: 0.55)
+                : NSColor(white: 1, alpha: 0.18)).setFill()
+            face.fill()
+            context.restoreGState()
+            NSColor(white: 1, alpha: isDarkClear ? 0.12 : 0.22).setStroke()
+            face.lineWidth = 6
+            face.stroke()
+            wColor = NSColor(white: 1, alpha: isDarkClear ? 0.34 : 0.23)
+            numberColor = .white
+            barColor = NSColor(white: 1, alpha: isDarkClear ? 0.58 : 0.45)
+            dotColor = isDarkClear ? .white : NSColor(white: 0, alpha: 0.28)
+        case .tintedLight:
+            let tint = tintColor.usingColorSpace(.deviceRGB) ?? .systemBlue
+            NSGradient(starting: NSColor(deviceRed: 0.58 + tint.redComponent * 0.42,
+                                         green: 0.58 + tint.greenComponent * 0.42,
+                                         blue: 0.58 + tint.blueComponent * 0.42, alpha: 1),
+                       ending: NSColor(deviceRed: 0.47 + tint.redComponent * 0.43,
+                                       green: 0.47 + tint.greenComponent * 0.43,
+                                       blue: 0.47 + tint.blueComponent * 0.43, alpha: 1))?
+                .draw(in: face, angle: -90)
+            wColor = NSColor(white: 0, alpha: 0.50)
+            numberColor = NSColor(white: 0, alpha: 0.78)
+            barColor = NSColor(white: 0, alpha: 0.30)
+            dotColor = NSColor(white: 0, alpha: 0.72)
+        case .tintedDark:
+            let tint = tintColor.usingColorSpace(.deviceRGB) ?? .systemBlue
+            NSGradient(starting: NSColor(deviceRed: 0.06 + tint.redComponent * 0.08,
+                                         green: 0.08 + tint.greenComponent * 0.19,
+                                         blue: 0.10 + tint.blueComponent * 0.15, alpha: 1),
+                       ending: NSColor(deviceRed: 0.04 + tint.redComponent * 0.08,
+                                       green: 0.06 + tint.greenComponent * 0.17,
+                                       blue: 0.08 + tint.blueComponent * 0.14, alpha: 1))?
+                .draw(in: face, angle: -90)
+            wColor = tintColor.withAlphaComponent(0.85)
+            numberColor = tintColor
+            barColor = tintColor.withAlphaComponent(0.55)
+            dotColor = tintColor
+        }
+        face.addClip()
+
+        let quarter = quarterIndex(for: week, on: date)
+        for index in 0..<4 {
+            let bar = NSBezierPath(roundedRect: NSRect(x: 162 + 187 * index,
+                                                       y: 229,
+                                                       width: 163,
+                                                       height: 52),
+                                   xRadius: 26, yRadius: 26)
+            barColor.setFill()
+            bar.fill()
+        }
+        dotColor.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 204 + 187 * quarter,
+                                    y: 214, width: 81, height: 81)).fill()
+
+        drawWeekMark(week: week, in: context, wColor: wColor, numberColor: numberColor)
+        context.restoreGState()
     }
 
-    private func dockTextAttributes(
-        color: NSColor,
-        fontName: String,
-        fontSize: CGFloat,
-        weight: NSFont.Weight,
-        letterSpacing: CGFloat
-    ) -> [NSAttributedString.Key: Any] {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        let font = NSFont(name: fontName, size: fontSize) ?? NSFont.systemFont(ofSize: fontSize, weight: weight)
-        return [
+    private func drawWeekMark(week: Int, in context: CGContext,
+                              wColor: NSColor, numberColor: NSColor) {
+        let font = NSFont(name: "SF Pro Rounded Light", size: 460)
+            ?? NSFont.systemFont(ofSize: 460, weight: .light)
+        let text = NSAttributedString(string: String(week), attributes: [
             .font: font,
-            .foregroundColor: color,
-            .paragraphStyle: paragraph,
-            .kern: letterSpacing * fontSize
+            .foregroundColor: numberColor
+        ])
+        let line = CTLineCreateWithAttributedString(text)
+        let ink = CTLineGetImageBounds(line, context)
+        guard ink.width > 0, ink.height > 0 else { return }
+        let numberScale = 345 / ink.height
+        let numberWidth = ink.width * numberScale
+        let markLeft: CGFloat = 158
+        let markRight: CGFloat = 875
+        let gap: CGFloat = 35
+        let fullWWidth: CGFloat = 395
+        let wScale = min(1, max(0.35, (markRight - markLeft - gap - numberWidth) / fullWWidth))
+
+        // The W's upper-left ink corner stays at the same point as it shrinks.
+        let w = NSBezierPath()
+        let points: [(CGFloat, CGFloat)] = [
+            (182, 270), (265, 565), (356, 270), (448, 565), (530, 270)
         ]
-    }
-    
-    private struct DockTextItem {
-        let text: String
-        let color: NSColor
-        let fontName: String
-        let sizeRatio: CGFloat
-        let weight: NSFont.Weight
-        let centerYRatio: CGFloat
-        let letterSpacing: CGFloat
-    }
-
-    private func drawDockTextBlock(in rect: CGRect,
-                                   style: DockIconStyle,
-                                   weekNumber: String,
-                                   snap: (CGFloat) -> CGFloat = { $0 }) {
-        let items = [
-            DockTextItem(text: "Week",
-                         color: style.weekTextColor,
-                         fontName: "SF Compact Rounded",
-                         sizeRatio: 0.21,
-                         weight: .regular,
-                         centerYRatio: 0.79,
-                         letterSpacing: -0.02),
-            DockTextItem(text: weekNumber,
-                         color: style.numberTextColor,
-                         fontName: "SF Pro Rounded",
-                         sizeRatio: 0.56,
-                         weight: .semibold,
-                         centerYRatio: 0.39,
-                         letterSpacing: -0.01)
-        ]
-        for it in items {
-            let fontSize = rect.width * it.sizeRatio
-            let attrs = dockTextAttributes(color: it.color,
-                                           fontName: it.fontName,
-                                           fontSize: fontSize,
-                                           weight: it.weight,
-                                           letterSpacing: it.letterSpacing)
-            let centerY = snap(rect.minY + rect.height * it.centerYRatio)
-            drawCentered(it.text, centerY: centerY, in: rect, attributes: attrs)
+        for (index, point) in points.enumerated() {
+            let x = markLeft + (point.0 - markLeft) * wScale
+            let y = 1024 - (245 + (point.1 - 245) * wScale)
+            if index == 0 { w.move(to: NSPoint(x: x, y: y)) }
+            else { w.line(to: NSPoint(x: x, y: y)) }
         }
+        w.lineWidth = 48 * wScale
+        w.lineCapStyle = .round
+        w.lineJoinStyle = .round
+        wColor.setStroke()
+        w.stroke()
+
+        let numberLeft = markLeft + fullWWidth * wScale + gap
+        let numberTop: CGFloat = 245
+        numberColor.setFill()
+        context.saveGState()
+        context.translateBy(x: numberLeft - ink.minX * numberScale,
+                            y: 1024 - numberTop - ink.maxY * numberScale)
+        context.scaleBy(x: numberScale, y: numberScale)
+        CTLineDraw(line, context)
+        context.restoreGState()
     }
 
-    private func currentDockIconVariant() -> DockIconVariant {
-        let appearance = NSApp.effectiveAppearance
-        let options: [NSAppearance.Name] = [
-            .accessibilityHighContrastDarkAqua,
-            .darkAqua,
-            .vibrantDark,
-            .accessibilityHighContrastAqua,
-            .vibrantLight,
-            .aqua
-        ]
-        let bestMatch = appearance.bestMatch(from: options) ?? .aqua
-        switch bestMatch {
-        case .darkAqua, .vibrantDark, .accessibilityHighContrastDarkAqua:
-            return .dark
-        case .accessibilityHighContrastAqua, .vibrantLight:
-            return .tinted
-        default:
-            return .light
-        }
-    }
-
-    private func dockIconStyle(for variant: DockIconVariant) -> DockIconStyle {
-        switch variant {
-        case .light:
-            return DockIconStyle(
-                backgroundTop: rgbColor(0xF8F8FA),
-                backgroundBottom: rgbColor(0xD6DADE),
-                weekTextColor: rgbColor(0xEB534E),
-                numberTextColor: rgbColor(0x212123),
-                highlightAlpha: 0.42,
-                highlightCoverage: 0.7,
-                fillOpacity: 1,
-                insetRatio: 0.08
-            )
-        case .dark:
-            return DockIconStyle(
-                backgroundTop: rgbColor(0x3F4145),
-                backgroundBottom: rgbColor(0x15171A),
-                weekTextColor: rgbColor(0xEB534E),
-                numberTextColor: rgbColor(0xF4F5F9),
-                highlightAlpha: 0.14,
-                highlightCoverage: 0.65,
-                fillOpacity: 1,
-                insetRatio: 0.08
-            )
-        case .tinted:
-            return DockIconStyle(
-                backgroundTop: rgbColor(0x9DA0A4),
-                backgroundBottom: rgbColor(0x686A6E),
-                weekTextColor: rgbColor(0xE6E9EF),
-                numberTextColor: rgbColor(0xFCFDFD),
-                highlightAlpha: 0.35,
-                highlightCoverage: 0.7,
-                fillOpacity: 1,
-                insetRatio: 0.08
-            )
-        }
-    }
-
-    private func rgbColor(_ hex: Int) -> NSColor {
-        let red = CGFloat((hex >> 16) & 0xFF) / 255.0
-        let green = CGFloat((hex >> 8) & 0xFF) / 255.0
-        let blue = CGFloat(hex & 0xFF) / 255.0
-        return NSColor(calibratedRed: red, green: green, blue: blue, alpha: 1.0)
-    }
-
-    private enum DockIconVariant {
-        case light
-        case dark
-        case tinted
-    }
-
-    private struct DockIconStyle {
-        let backgroundTop: NSColor
-        let backgroundBottom: NSColor
-        let weekTextColor: NSColor
-        let numberTextColor: NSColor
-        let highlightAlpha: CGFloat
-        let highlightCoverage: CGFloat
-        let fillOpacity: CGFloat
-        let insetRatio: CGFloat
-    }
-
-    private func weekNumberDigits(for date: Date) -> String {
-        let week = isoWeekNumber(for: date)
-        return "\(week)"
+    private func quarterIndex(for week: Int, on date: Date) -> Int {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .current
+        let total = calendar.range(of: .weekOfYear,
+                                   in: .yearForWeekOfYear,
+                                   for: date)?.count ?? 52
+        return min(3, max(0, (week - 1) * 4 / total))
     }
 
     private func isoWeekNumber(for date: Date) -> Int {
